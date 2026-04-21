@@ -2,7 +2,7 @@
 $servername = "localhost";
 $username   = "root";
 $password   = "";
-$dbname     = "esp32_sensor";
+$dbname     = "esp32_monitor";
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 
