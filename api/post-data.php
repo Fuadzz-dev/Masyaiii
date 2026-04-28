@@ -3,7 +3,7 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST");
 header("Content-Type: application/json; charset=UTF-8");
 
-include_once 'koneksi.php';
+include_once '../koneksi.php';
 
 $api_key_value = "MentimunBesar";
 
