@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <DHT.h>
+#include <ArduinoJson.h>  // Install via Library Manager: ArduinoJson by Benoit Blanchon
 
 // ==========================================
 // KONFIGURASI WIFI & SERVER
@@ -9,7 +10,8 @@ const char *ssid = "Fuad";
 const char *password = "********";
 
 // Ganti IP dengan IP Laptop/PC kamu
-const char *serverName = "http://192.168.43.53/Dashboard_Monitor_ESP32/api/post-data.php";
+const char *serverName     = "http://192.168.43.53/Dashboard_Monitor_ESP32/api/post-data.php";
+const char *pumpControlURL = "http://192.168.43.53/Dashboard_Monitor_ESP32/api/pump-control.php";
 String apiKeyValue = "MentimunBesar";
 
 // ==========================================
@@ -25,6 +27,11 @@ DHT dht(DHTPIN, DHTTYPE);
 #define SOIL_MOISTURE_PIN 34
 #define LDR_PIN 35
 
+// ==========================================
+// KONFIGURASI PIN POMPA (RELAY)
+// ==========================================
+#define RELAY_PIN 26  // Ganti sesuai pin relay yang kamu pakai
+
 // Timer
 unsigned long lastTime = 0;
 unsigned long timerDelay = 3000; // Kirim setiap 3 detik
@@ -39,6 +46,10 @@ void setup()
   // Konfigurasi pin analog sebagai input
   pinMode(SOIL_MOISTURE_PIN, INPUT);
   pinMode(LDR_PIN, INPUT);
+
+  // Konfigurasi pin relay sebagai output & pastikan MATI saat boot
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, LOW);
 
   // Koneksi WiFi
   WiFi.begin(ssid, password);
@@ -124,6 +135,37 @@ void loop()
       }
 
       http.end();
+
+      // ==========================================
+      // CEK STATUS POMPA DARI SERVER
+      // ==========================================
+      HTTPClient httpPump;
+      httpPump.begin(pumpControlURL);
+
+      int pumpCode = httpPump.GET();
+      if (pumpCode == HTTP_CODE_OK) {
+        String payload = httpPump.getString();
+        Serial.println("Pump Status: " + payload);
+
+        // Parse JSON response
+        StaticJsonDocument<128> doc;
+        DeserializationError jsonErr = deserializeJson(doc, payload);
+        if (!jsonErr) {
+          bool isActive = doc["is_active"];
+          // Kendali relay berdasarkan perintah dashboard
+          // Relay ACTIVE HIGH: HIGH = ON, LOW = OFF
+          // Jika relay ACTIVE LOW, balikkan: isActive ? LOW : HIGH
+          digitalWrite(RELAY_PIN, isActive ? HIGH : LOW);
+          Serial.print("Pompa: ");
+          Serial.println(isActive ? "MENYALA" : "MATI");
+        } else {
+          Serial.println("Gagal parse JSON pompa");
+        }
+      } else {
+        Serial.print("Gagal cek pompa, kode: ");
+        Serial.println(pumpCode);
+      }
+      httpPump.end();
     }
     else
     {

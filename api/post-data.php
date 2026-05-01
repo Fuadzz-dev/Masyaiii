@@ -60,6 +60,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 VALUES ('$airHumidity', '$soilHumidity', '$temperature', '$light')";
 
         if ($conn->query($sql) === TRUE) {
+            // Automatic Pump Control Logic
+            $result = $conn->query("SELECT is_active, mode FROM pump_control WHERE id = 1");
+            if ($result && $row = $result->fetch_assoc()) {
+                $mode = $row['mode'];
+                $current_is_active = (int)$row['is_active'];
+                
+                if ($mode === 'auto') {
+                    $new_is_active = $current_is_active;
+                    $soil_val = (float)$soilHumidity;
+                    
+                    if ($soil_val < 40.0) {
+                        $new_is_active = 1;
+                    } else if ($soil_val >= 83.0) {
+                        $new_is_active = 0;
+                    }
+                    
+                    if ($new_is_active !== $current_is_active) {
+                        $conn->query("UPDATE pump_control SET is_active = $new_is_active WHERE id = 1");
+                    }
+                }
+            }
+
             echo json_encode(["message" => "Data berhasil disimpan"]);
         } else {
             echo json_encode(["message" => "Error: " . $sql . "<br>" . $conn->error]);

@@ -21,12 +21,12 @@ function getStatus(
 ): "normal" | "warning" | "danger" {
   switch (type) {
     case "airHumidity":
-      if (value >= 40 && value <= 70) return "normal";
-      if ((value >= 30 && value < 40) || (value > 70 && value <= 80)) return "warning";
+      if (value >= 50 && value <= 85) return "normal";
+      if ((value >= 35 && value < 50) || (value > 85 && value <= 100)) return "warning";
       return "danger";
     case "soilHumidity":
-      if (value >= 50 && value <= 80) return "normal";
-      if ((value >= 30 && value < 50) || (value > 80 && value <= 90)) return "warning";
+      if (value >= 50 && value <= 85) return "normal";
+      if ((value >= 35 && value < 50) || (value > 85 && value <= 100)) return "warning";
       return "danger";
     case "temperature":
       if (value >= 18 && value <= 28) return "normal";

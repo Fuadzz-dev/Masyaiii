@@ -11,10 +11,12 @@ import {
   BarChart2,
 } from "lucide-react";
 import { useSensorData } from "./hooks/useSensorData";
+import { usePumpControl } from "./hooks/usePumpControl";
 import StatCard from "./components/StatCard";
 import SensorChart from "./components/SensorChart";
 import GaugeCard from "./components/GaugeCard";
 import AlertBanner from "./components/AlertBanner";
+import PumpControl from "./components/PumpControl";
 
 type ChartFilter = "all" | "airHumidity" | "soilHumidity" | "temperature" | "light";
 
@@ -28,6 +30,7 @@ const chartFilters: { key: ChartFilter; label: string; color: string }[] = [
 
 export default function App() {
   const { history, latest, status, isLive, setIsLive } = useSensorData();
+  const { pump, loading: pumpLoading, error: pumpError, togglePump, setAutoMode } = usePumpControl();
   const [activeChart, setActiveChart] = useState<ChartFilter>("all");
 
   const now = new Date().toLocaleDateString("id-ID", {
@@ -205,48 +208,59 @@ export default function App() {
           ))}
         </div>
 
-        {/* Middle row: Chart + Gauges */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
-          {/* Chart */}
-          <div className="xl:col-span-2 bg-slate-900/60 border border-slate-700/50 rounded-2xl p-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-              <div className="flex items-center gap-2">
-                <BarChart2 className="text-sky-400" size={18} />
-                <h2 className="text-base font-bold text-white">
-                  Grafik Sensor Real-time
-                </h2>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {chartFilters.map((f) => (
-                  <button
-                    key={f.key}
-                    onClick={() => setActiveChart(f.key)}
-                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-all ${
-                      activeChart === f.key
-                        ? `${f.color} text-white shadow-sm`
-                        : "bg-slate-700/50 text-slate-400 hover:bg-slate-700"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
+        {/* Middle row: Chart */}
+        <div className="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-5 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+            <div className="flex items-center gap-2">
+              <BarChart2 className="text-sky-400" size={18} />
+              <h2 className="text-base font-bold text-white">
+                Grafik Sensor Real-time
+              </h2>
             </div>
-            <SensorChart data={history} activeChart={activeChart} />
-          </div>
-
-          {/* Gauges */}
-          <div className="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-5">
-            <h2 className="text-base font-bold text-white mb-5 flex items-center gap-2">
-              <Activity className="text-emerald-400" size={18} />
-              Indikator Gauge
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
-              {gauges.map((g) => (
-                <GaugeCard key={g.title} {...g} />
+            <div className="flex flex-wrap gap-2">
+              {chartFilters.map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setActiveChart(f.key)}
+                  className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-all ${
+                    activeChart === f.key
+                      ? `${f.color} text-white shadow-sm`
+                      : "bg-slate-700/50 text-slate-400 hover:bg-slate-700"
+                  }`}
+                >
+                  {f.label}
+                </button>
               ))}
             </div>
           </div>
+          <SensorChart data={history} activeChart={activeChart} />
+        </div>
+
+        {/* Bottom row: Gauges + Pump */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+          {/* Gauges */}
+          <div className="xl:col-span-2 bg-slate-900/60 border border-slate-700/50 rounded-2xl p-5 flex flex-col h-full">
+            <h2 className="text-base font-bold text-white mb-5 flex items-center gap-2 flex-shrink-0">
+              <Activity className="text-emerald-400" size={18} />
+              Indikator Gauge
+            </h2>
+            <div className="flex-grow flex flex-col justify-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+                {gauges.map((g) => (
+                  <GaugeCard key={g.title} {...g} />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Pump Control */}
+          <PumpControl
+            pump={pump}
+            loading={pumpLoading}
+            error={pumpError}
+            onToggle={togglePump}
+            onSetAuto={setAutoMode}
+          />
         </div>
 
         {/* Data table */}
