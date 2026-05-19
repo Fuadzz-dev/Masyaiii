@@ -1,7 +1,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <DHT.h>
-#include <ArduinoJson.h>  // Install via Library Manager: ArduinoJson by Benoit Blanchon
+#include <ArduinoJson.h> // Install via Library Manager: ArduinoJson by Benoit Blanchon
 
 // ==========================================
 // KONFIGURASI WIFI & SERVER
@@ -10,15 +10,15 @@ const char *ssid = "Fuad";
 const char *password = "********";
 
 // Ganti IP dengan IP Laptop/PC kamu
-const char *serverName     = "http://192.168.43.53/Dashboard_Monitor_ESP32/api/post-data.php";
-const char *pumpControlURL = "http://192.168.43.53/Dashboard_Monitor_ESP32/api/pump-control.php";
+const char *serverName = "http://43.157.235.23:8005/api/post-data.php";
+const char *pumpControlURL = "http://43.157.235.23:8005/api/pump-control.php";
 String apiKeyValue = "MentimunBesar";
 
 // ==========================================
 // KONFIGURASI PIN SENSOR
 // ==========================================
 // Sensor DHT22
-#define DHTPIN 4      // Pin yang terhubung ke pin Data DHT22
+#define DHTPIN 5      // Pin yang terhubung ke pin Data DHT22
 #define DHTTYPE DHT22 // Tipe DHT (DHT11 atau DHT22)
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -30,7 +30,7 @@ DHT dht(DHTPIN, DHTTYPE);
 // ==========================================
 // KONFIGURASI PIN POMPA (RELAY)
 // ==========================================
-#define RELAY_PIN 26  // Ganti sesuai pin relay yang kamu pakai
+#define RELAY_PIN 2 // Ganti sesuai pin relay yang kamu pakai
 
 // Timer
 unsigned long lastTime = 0;
@@ -83,10 +83,13 @@ void loop()
       float temp = dht.readTemperature();
 
       // Validasi pembacaan DHT
-      if (isnan(airHum) || isnan(temp))
-      {
-        Serial.println("Gagal membaca dari sensor DHT!");
-        // Kamu bisa set ke 0.0 jika error atau biarkan saja
+      if (isnan(airHum)) {
+        airHum = 0.0;
+        Serial.println("Peringatan: airHumidity tidak terbaca, pakai 0.0");
+      }
+      if (isnan(temp)) {
+        temp = 0.0;
+        Serial.println("Peringatan: temperature tidak terbaca, pakai 0.0");
       }
 
       // 2. Membaca Soil Moisture (Analog 0-4095 di ESP32)
@@ -143,14 +146,16 @@ void loop()
       httpPump.begin(pumpControlURL);
 
       int pumpCode = httpPump.GET();
-      if (pumpCode == HTTP_CODE_OK) {
+      if (pumpCode == HTTP_CODE_OK)
+      {
         String payload = httpPump.getString();
         Serial.println("Pump Status: " + payload);
 
         // Parse JSON response
         StaticJsonDocument<128> doc;
         DeserializationError jsonErr = deserializeJson(doc, payload);
-        if (!jsonErr) {
+        if (!jsonErr)
+        {
           bool isActive = doc["is_active"];
           // Kendali relay berdasarkan perintah dashboard
           // Relay ACTIVE HIGH: HIGH = ON, LOW = OFF
@@ -158,10 +163,14 @@ void loop()
           digitalWrite(RELAY_PIN, isActive ? HIGH : LOW);
           Serial.print("Pompa: ");
           Serial.println(isActive ? "MENYALA" : "MATI");
-        } else {
+        }
+        else
+        {
           Serial.println("Gagal parse JSON pompa");
         }
-      } else {
+      }
+      else
+      {
         Serial.print("Gagal cek pompa, kode: ");
         Serial.println(pumpCode);
       }
